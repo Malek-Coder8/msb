@@ -330,6 +330,40 @@ function gTapOld(){var s=0,t=10,run=false,iv=null;
   $('tb').onclick=function(){if(!run){run=true;t=10;s=0;iv=setInterval(function(){t--;$('gt').textContent='⏱ '+t+'s · '+s+' pops';if(t<=0){clearInterval(iv);run=false;$('gt').textContent='🎉 Time! You popped '+s+' balloons!';confetti()}},1000)}
     if(run){s++;$('gt').textContent='⏱ '+t+'s · '+s+' pops'}}}
 function gArch(){
+  gm('<div class="msg">Archery vs AI! 5 arrows each. Pop the balloons: the smaller the balloon, the more points! Tap SHOOT when the crosshair is on one.</div><canvas id="ac" width="300" height="300" style="width:100%;max-width:300px;display:block;margin:0 auto;border-radius:12px;background:#9be7ff"></canvas><div class="row" style="justify-content:center"><button class="on" id="as" style="font-size:1.3rem;padding:12px 26px">🏹 SHOOT!</button></div><div class="msg" id="asc">Arrow 1 of 5 · You: 0 · 🤖 AI: 0</div>');
+  var cv=$('ac'),c=cv.getContext('2d'),t=0,rd=0,ys=0,as_=0,over=false,busy=false,B2=[],bits=[],fl=[];
+  var types=[[30,1,'#81c784'],[30,1,'#4fc3f7'],[22,3,'#ba68c8'],[22,3,'#ff8a65'],[15,5,'#ff4f86'],[15,5,'#e53935'],[12,10,'#ffc107']];
+  function place(ty){var x,y;for(var k=0;k<30;k++){x=40+Math.random()*220;y=45+Math.random()*190;var ok=true;B2.forEach(function(o){if(Math.hypot(o.x-x,o.y-y)<o.r+ty[0]+8)ok=false});if(ok)break}return {x:x,y:y,r:ty[0],v:ty[1],c:ty[2],ph:Math.random()*6}}
+  types.forEach(function(ty){B2.push(place(ty))});
+  function pos(){return [150+Math.sin(t*1.6)*125,150+Math.sin(t*2.3+1)*115]}
+  function by(b){return b.y+Math.sin(t*2+b.ph)*4}
+  function gs(){return (Math.random()+Math.random()+Math.random()-1.5)*1.6}
+  function burst(x,y,col,n){for(var i=0;i<n;i++){var an=Math.random()*6.283,sp=1+Math.random()*3.5;bits.push({x:x,y:y,vx:Math.cos(an)*sp,vy:Math.sin(an)*sp-1.5,c:col,s:3+Math.random()*4,a:1})}}
+  function shoot(p){var best=null;B2.forEach(function(b){if(Math.hypot(p[0]-b.x,p[1]-by(b))<=b.r+3&&(!best||b.v>best.v))best=b});var v=0;
+    if(best){v=best.v;burst(best.x,by(best),best.c,18);B2.splice(B2.indexOf(best),1);B2.push(place([best.r,best.v,best.c]))}
+    fl.push({x:p[0],y:p[1],t:v?'+'+v:'miss',a:1});return v}
+  function upd(){$('asc').textContent='Arrow '+Math.min(rd+1,5)+' of 5 · You: '+ys+' · 🤖 AI: '+as_}
+  function finish(){
+    over=true;$('as').textContent='🔄 Play again';
+    setTimeout(function(){B2.forEach(function(b){burst(b.x,by(b),b.c,30)});B2=[];confetti();$('asc').textContent=(ys>as_?'🎉 You beat the AI! ':ys<as_?'🤖 The AI wins! ':'🤝 It’s a tie! ')+'('+ys+' vs '+as_+')'},600)}
+  $('as').onclick=function(){
+    if(over){gArch();return}if(busy)return;busy=true;ys+=shoot(pos());upd();
+    setTimeout(function(){var sorted=B2.slice().sort(function(a,b){return b.v-a.v}),tg=sorted[Math.floor(Math.random()*Math.random()*sorted.length)],e=14+Math.random()*12;
+      as_+=shoot([tg.x+gs()*e,by(tg)+gs()*e]);rd++;busy=false;upd();if(rd>=5)finish()},700)};
+  cv.onclick=function(){$('as').onclick()};
+  function frame(){
+    if(!document.body.contains(cv))return;
+    t+=.03;c.clearRect(0,0,300,300);
+    B2.forEach(function(b){var y=by(b);c.strokeStyle='rgba(90,90,90,.6)';c.lineWidth=1.5;c.beginPath();c.moveTo(b.x,y+b.r*1.1);c.quadraticCurveTo(b.x+6,y+b.r*1.6,b.x,y+b.r*2.1);c.stroke();
+      c.fillStyle=b.c;c.beginPath();c.ellipse(b.x,y,b.r*.9,b.r*1.1,0,0,6.283);c.fill();c.fillStyle='rgba(255,255,255,.4)';c.beginPath();c.ellipse(b.x-b.r*.3,y-b.r*.4,b.r*.18,b.r*.3,.5,0,6.283);c.fill();
+      c.fillStyle='#fff';c.font='bold '+Math.round(b.r*.9)+'px sans-serif';c.textAlign='center';c.textBaseline='middle';c.fillText(b.v,b.x,y)});
+    bits.forEach(function(b){b.x+=b.vx;b.y+=b.vy;b.vy+=.1;b.a=Math.max(0,b.a-.008);c.globalAlpha=b.a;c.fillStyle=b.c;c.fillRect(b.x,b.y,b.s,b.s)});c.globalAlpha=1;
+    fl.forEach(function(f){f.y-=.6;f.a=Math.max(0,f.a-.015);c.globalAlpha=f.a;c.fillStyle='#222';c.font='bold 18px sans-serif';c.textAlign='center';c.fillText(f.t,f.x,f.y)});c.globalAlpha=1;
+    if(!over){var p=pos();c.strokeStyle='#e91e63';c.lineWidth=2;c.beginPath();c.arc(p[0],p[1],10,0,6.283);c.moveTo(p[0]-16,p[1]);c.lineTo(p[0]+16,p[1]);c.moveTo(p[0],p[1]-16);c.lineTo(p[0],p[1]+16);c.stroke();c.lineWidth=1}
+    requestAnimationFrame(frame)}
+  frame();
+}
+function gArchOld(){
   gm('<div class="msg">Archery vs AI! 5 arrows each. Tap SHOOT when the crosshair is on the bullseye.</div><canvas id="ac" width="300" height="300" style="width:100%;max-width:300px;display:block;margin:0 auto;border-radius:12px;background:#9be7ff"></canvas><div class="row" style="justify-content:center"><button class="on" id="as" style="font-size:1.3rem;padding:12px 26px">🏹 SHOOT!</button></div><div class="msg" id="asc">Arrow 1 of 5 · You: 0 · 🤖 AI: 0</div>');
   var cv=$('ac'),c=cv.getContext('2d'),C=150,R=[120,96,72,48,24],col=['#ffffff','#222222','#4fc3f7','#e53935','#ffd54f'],t=0,rd=0,ys=0,as_=0,arrows=[],over=false,busy=false,bits=null;
   function pos(){return [C+Math.sin(t*1.6)*115,C+Math.sin(t*2.3+1)*105]}
